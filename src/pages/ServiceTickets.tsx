@@ -175,7 +175,7 @@ const ServiceTickets = () => {
       const { data, error } = await supabase
         .from('projects')
         .select('customer_name, email, phone, address')
-        .eq('status', 'active');
+        .in('status', ['active', 'finished']);
 
       if (error) throw error;
       
