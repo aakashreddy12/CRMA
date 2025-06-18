@@ -28,7 +28,6 @@ import {
   Input,
   Textarea,
   useToast,
-  Select,
   VStack,
   Spinner,
   Center,
@@ -104,6 +103,29 @@ const ServiceTickets = () => {
     address: '',
     description: ''
   });
+  const [customerSearch, setCustomerSearch] = useState('');
+  const [showCustomerDropdown, setShowCustomerDropdown] = useState(false);
+  const filteredCustomers = customers.filter(c =>
+    c.customer_name.toLowerCase().includes(customerSearch.toLowerCase())
+  );
+
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      const dropdown = document.getElementById('customer-dropdown-box');
+      if (dropdown && !dropdown.contains(event.target as Node)) {
+        setShowCustomerDropdown(false);
+      }
+    }
+    if (showCustomerDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    } else {
+      document.removeEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showCustomerDropdown]);
+
   const [viewTicket, setViewTicket] = useState<ServiceTicket | null>(null);
   const [ticketToDelete, setTicketToDelete] = useState<ServiceTicket | null>(null);
   const { isOpen: isNewOpen, onOpen: onNewOpen, onClose: onNewClose } = useDisclosure();
@@ -184,7 +206,7 @@ const ServiceTickets = () => {
       fetchServiceTickets();
       fetchCustomers();
     }
-  }, [isAuthenticated, fetchServiceTickets, fetchCustomers]);
+  }, [isAuthenticated, fetchServiceTickets, fetchCustomers]); // All dependencies are correct
 
   // Additional cleanup effect for when dialog is closed without confirmation
   useEffect(() => {
@@ -192,32 +214,6 @@ const ServiceTickets = () => {
       setTicketToDelete(null);
     }
   }, [isDeleteOpen]);
-
-  // Handle customer selection change
-  const handleCustomerChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const customerName = e.target.value;
-    const selected = customers.find(customer => customer.customer_name === customerName) || null;
-    
-    setSelectedCustomer(selected);
-    
-    if (selected) {
-      setFormData({
-        ...formData,
-        customer_name: selected.customer_name,
-        email: selected.email || '',
-        phone: selected.phone || '',
-        address: selected.address || ''
-      });
-    } else {
-      setFormData({
-        ...formData,
-        customer_name: '',
-        email: '',
-        phone: '',
-        address: ''
-      });
-    }
-  };
 
   // Handle form field changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -514,17 +510,47 @@ const ServiceTickets = () => {
             <VStack spacing={4}>
               <FormControl isRequired>
                 <FormLabel>Customer</FormLabel>
-                <Select
-                  placeholder="Select customer"
-                  value={formData.customer_name}
-                  onChange={handleCustomerChange}
-                >
-                  {customers.map((customer) => (
-                    <option key={customer.customer_name} value={customer.customer_name}>
-                      {customer.customer_name}
-                    </option>
-                  ))}
-                </Select>
+                <Box w="100%" position="relative" id="customer-dropdown-box">
+                  <Input
+                    placeholder="Search or select customer"
+                    value={customerSearch}
+                    onChange={e => {
+                      setCustomerSearch(e.target.value);
+                      setFormData({ ...formData, customer_name: e.target.value });
+                      setShowCustomerDropdown(true);
+                    }}
+                    onFocus={() => setShowCustomerDropdown(true)}
+                    autoComplete="off"
+                  />
+                  {showCustomerDropdown && (
+                    <Box position="absolute" bg="white" zIndex={10} w="100%" maxH="180px" overflowY="auto" borderWidth={1} borderRadius="md" boxShadow="md">
+                      {filteredCustomers.length === 0 && (
+                        <Text px={4} py={2} color="gray.500">No customers found</Text>
+                      )}
+                      {filteredCustomers.map((customer) => (
+                        <Box
+                          key={customer.customer_name}
+                          px={4} py={2}
+                          _hover={{ bg: 'gray.100', cursor: 'pointer' }}
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              customer_name: customer.customer_name,
+                              email: customer.email || '',
+                              phone: customer.phone || '',
+                              address: customer.address || '',
+                            });
+                            setSelectedCustomer(customer);
+                            setCustomerSearch(customer.customer_name);
+                            setShowCustomerDropdown(false);
+                          }}
+                        >
+                          {customer.customer_name}
+                        </Box>
+                      ))}
+                    </Box>
+                  )}
+                </Box>
               </FormControl>
 
               {selectedCustomer && (
@@ -538,7 +564,6 @@ const ServiceTickets = () => {
                       isReadOnly
                     />
                   </FormControl>
-                  
                   <FormControl>
                     <FormLabel>Phone</FormLabel>
                     <Input
@@ -548,7 +573,6 @@ const ServiceTickets = () => {
                       isReadOnly
                     />
                   </FormControl>
-                  
                   <FormControl>
                     <FormLabel>Address</FormLabel>
                     <Input
@@ -560,7 +584,7 @@ const ServiceTickets = () => {
                   </FormControl>
                 </>
               )}
-              
+
               <FormControl isRequired>
                 <FormLabel>Description</FormLabel>
                 <Textarea
