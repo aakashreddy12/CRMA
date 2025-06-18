@@ -496,6 +496,33 @@ const handleDownloadReceipt = async (payment: PaymentHistory, isAdvance: boolean
   await generatePaymentReceiptPDF(receiptData);
 };
 
+// Delete payment handler
+const handleDeletePayment = async (paymentId: string) => {
+  if (!paymentId || paymentId === 'advance') return;
+  try {
+    const { error } = await supabase
+      .from('payment_history')
+      .delete()
+      .eq('id', paymentId);
+    if (error) throw error;
+    setPaymentHistory(prev => prev.filter(p => p.id !== paymentId));
+    toast({
+      title: 'Payment deleted',
+      status: 'success',
+      duration: 2000,
+      isClosable: true,
+    });
+  } catch (error) {
+    toast({
+      title: 'Error',
+      description: 'Failed to delete payment',
+      status: 'error',
+      duration: 3000,
+      isClosable: true,
+    });
+  }
+};
+
 // Render payment history table
 const renderPaymentHistory = () => {
   if (!paymentHistory || paymentHistory.length === 0) {
@@ -528,6 +555,11 @@ const renderPaymentHistory = () => {
                   <Button size="sm" colorScheme="blue" onClick={() => handleDownloadReceipt(p, idx === 0)}>
                     Download Receipt
                   </Button>
+                  {p.id !== 'advance' && (
+                    <Button size="sm" colorScheme="red" ml={2} onClick={() => handleDeletePayment(p.id)}>
+                      Delete
+                    </Button>
+                  )}
                 </Td>
               </Tr>
             ))}
