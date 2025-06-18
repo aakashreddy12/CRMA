@@ -460,39 +460,61 @@ const Payments: React.FC = () => {
             <Center py={10}>
               <Spinner size="lg" color="green.500" />
             </Center>
-          ) : paymentHistory.length === 0 ? (
-            <Text color="gray.500" py={10} textAlign="center">
-              No payment history found
-            </Text>
           ) : (
-            <TableContainer>
-              <Table variant="simple" size="sm">
-                <Thead>
-                  <Tr>
-                    <Th>Date</Th>
-                    <Th>Project</Th>
-                    <Th isNumeric>Amount</Th>
-                    <Th>Status</Th>
-                    <Th>Payment ID</Th>
-                  </Tr>
-                </Thead>
-                <Tbody>
-                  {paymentHistory.map((payment) => (
-                    <Tr key={payment.id}>
-                      <Td>{new Date(payment.created_at).toLocaleDateString()}</Td>
-                      <Td>{payment.project_name}</Td>
-                      <Td isNumeric>₹{payment.amount.toFixed(2)}</Td>
+            <Table variant="simple" size="sm">
+              <Thead>
+                <Tr>
+                  <Th>Date</Th>
+                  <Th>Project</Th>
+                  <Th isNumeric>Amount</Th>
+                  <Th>Status</Th>
+                  <Th>Payment ID</Th>
+                  {user?.email === 'admin@axisogreen.in' && <Th>Action</Th>}
+                </Tr>
+              </Thead>
+              <Tbody>
+                {paymentHistory.map((payment) => (
+                  <Tr key={payment.id}>
+                    <Td>{new Date(payment.created_at).toLocaleDateString()}</Td>
+                    <Td>{payment.project_name}</Td>
+                    <Td isNumeric>₹{payment.amount.toFixed(2)}</Td>
+                    <Td>
+                      <Badge colorScheme={payment.status === 'success' ? 'green' : 'yellow'}>
+                        {payment.status}
+                      </Badge>
+                    </Td>
+                    <Td fontSize="xs">{payment.payment_id || '-'}</Td>
+                    {user?.email === 'admin@axisogreen.in' && (
                       <Td>
-                        <Badge colorScheme={payment.status === 'success' ? 'green' : 'yellow'}>
-                          {payment.status}
-                        </Badge>
+                        <Button colorScheme="red" size="xs" onClick={async () => {
+                          const { error } = await supabase
+                            .from('payments')
+                            .delete()
+                            .eq('id', payment.id);
+                          if (!error) {
+                            setPaymentHistory((prev) => prev.filter((p) => p.id !== payment.id));
+                            toast({
+                              title: 'Payment deleted',
+                              status: 'success',
+                              duration: 2000,
+                              isClosable: true,
+                            });
+                          } else {
+                            toast({
+                              title: 'Delete failed',
+                              description: error.message,
+                              status: 'error',
+                              duration: 3000,
+                              isClosable: true,
+                            });
+                          }
+                        }}>Delete</Button>
                       </Td>
-                      <Td fontSize="xs">{payment.payment_id || '-'}</Td>
-                    </Tr>
-                  ))}
-                </Tbody>
-              </Table>
-            </TableContainer>
+                    )}
+                  </Tr>
+                ))}
+              </Tbody>
+            </Table>
           )}
         </Box>
       </Flex>
@@ -500,4 +522,4 @@ const Payments: React.FC = () => {
   );
 };
 
-export default Payments; 
+export default Payments;
