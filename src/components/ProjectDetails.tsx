@@ -477,7 +477,10 @@ const handlePayment = async () => {
   }
 };
 const handlePaymentDateChange = () => {};
-const handlePaymentModeChange = () => {};
+const handlePaymentModeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+  setPaymentMode(e.target.value);
+  if (id) sessionStorage.setItem(`payment_mode_${id}`, e.target.value);
+};
 
 // (other imports...)
 
